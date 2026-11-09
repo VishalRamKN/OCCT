@@ -1,0 +1,48 @@
+puts "============"
+puts "GH1729: Draft angle must keep the direction of closed intersection curves"
+puts "============"
+puts ""
+
+pload MODELING
+
+set H 25.0
+set L 250.0
+set R 4.0
+set PI [expr {acos(-1.0)}]
+set EXPECTED [expr {(4.0 * $H * $H - (4.0 - $PI) * $R * $R) * $L}]
+
+proc mass {text} {
+  regexp {Mass\s*:\s*([-+0-9.eE]+)} $text -> value
+  return $value
+}
+
+polyline w -$H -$H 0  $H -$H 0  $H $H 0  -$H $H 0  -$H -$H 0
+mkplane f w
+prism p f 0 0 $L
+
+explode p e
+set args_blend {}
+for {set i 1} {$i <= 12} {incr i} {
+  if {[expr {abs([mass [lprops p_$i]] - $L)}] < 0.001} {
+    lappend args_blend $R p_$i
+  }
+}
+eval blend s p $args_blend
+
+explode s f
+set caps {}
+for {set i 1} {$i <= 10} {incr i} {
+  set area [mass [sprops s_$i]]
+  if {abs($area - ($EXPECTED / $L)) < 0.01} {
+    lappend caps s_$i
+  }
+}
+
+set draft_args {}
+foreach cap $caps {
+  lappend draft_args $cap 45 0 0 0 0 1 0
+}
+eval depouille result s 0 1 0 $draft_args
+
+checkshape result
+checkprops result -v $EXPECTED -eps 1.e-6

@@ -1669,7 +1669,8 @@ void Draft_Modification::Perform()
       double aParF = myVMap.ChangeFromKey(Vf).Parameter(edg);
       double aParL = myVMap.ChangeFromKey(Vl).Parameter(edg);
 
-      if (aParL < aParF)
+      const occ::handle<Geom_Curve>& aNewGeom = myEMap.FindFromKey(edg).Geometry();
+      if (aParL < aParF || (!aNewGeom.IsNull() && aNewGeom->IsClosed()))
       {
         Draft_EdgeInfo&               aEinf = myEMap.ChangeFromKey(edg);
         TopLoc_Location               aLoc;
